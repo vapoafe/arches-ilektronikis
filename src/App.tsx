@@ -502,10 +502,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div>
             <span className="font-bold text-slate-800 dark:text-slate-300 block">
-              Αρχές Ηλεκτρονικής (Θεωρία)  •  Α' Τάξη ΕΠΑΛ  •  Αποστολίδης-Αφεντούλης Βασίλειος
-            </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              Βασισμένο στο εγκεκριμένο αναλυτικό πρόγραμμα σπουδών του ΙΕΠ και στο εμπλουτισμένο ψηφιακό βιβλίο μαθητή.
+              Βασίλειος Αποστολίδης-Αφεντούλης 
             </span>
           </div>
 
