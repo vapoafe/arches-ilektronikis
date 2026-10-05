@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { curriculumData } from './data/curriculumData';
 import { quizData } from './data/quizData';
 import { datasheetsData } from './data/datasheetsData';
 import { glossaryData } from './data/glossaryData';
+import { slidesData } from './data/slidesData';
 import { ChapterDetail } from './components/ChapterDetail';
 import { QuizComponent } from './components/QuizComponent';
 import { DatasheetsViewer } from './components/DatasheetsViewer';
 import { GlossaryViewer } from './components/GlossaryViewer';
+import { ClassroomPdfRepository } from './components/ClassroomPdfRepository';
 import { Chapter1Simulator } from './components/simulators/Chapter1Simulator';
 import { Chapter2Simulator } from './components/simulators/Chapter2Simulator';
 import { Chapter4Simulator } from './components/simulators/Chapter4Simulator';
@@ -27,10 +29,14 @@ import {
   ArrowRight,
   Search,
   Sun,
-  Moon
+  Moon,
+  Presentation,
+  Share2,
+  FolderOpen,
+  Github
 } from 'lucide-react';
 
-type ViewMode = 'chapters' | 'chapter-detail' | 'simulators' | 'datasheets' | 'glossary' | 'quiz';
+type ViewMode = 'chapters' | 'chapter-detail' | 'simulators' | 'datasheets' | 'glossary' | 'quiz' | 'slides';
 
 export default function App() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -45,6 +51,27 @@ export default function App() {
     () => curriculumData.find((c) => c.id === selectedChapterId) || curriculumData[0],
     [selectedChapterId]
   );
+
+  // Listen to URL hash for direct QR code scanning & sharing (e.g. #slides?chapter=2)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#slides')) {
+        const queryIndex = hash.indexOf('?');
+        if (queryIndex !== -1) {
+          const params = new URLSearchParams(hash.slice(queryIndex));
+          const ch = params.get('chapter');
+          if (ch) {
+            setSelectedChapterId(Number(ch));
+          }
+        }
+        setCurrentView('slides');
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   const handleOpenChapter = (id: number) => {
     setSelectedChapterId(id);
@@ -63,6 +90,14 @@ export default function App() {
   const handleOpenSimulator = (chapterId: number) => {
     setSelectedSimTab(chapterId);
     setCurrentView('simulators');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenSlides = (chapterId?: number) => {
+    if (chapterId) {
+      setSelectedChapterId(chapterId);
+    }
+    setCurrentView('slides');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -106,9 +141,6 @@ export default function App() {
                     Α' ΕΠΑΛ
                   </span>
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block -mt-0.5 font-medium">
-                  Διαδραστικό Εργαλείο Εκμάθησης & Προσομοιώσεων
-                </span>
               </div>
             </div>
 
@@ -123,7 +155,19 @@ export default function App() {
                 }`}
               >
                 <Layers className="w-4 h-4" />
-                <span>Διδακτική Ύλη</span>
+                <span>Ύλη</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('slides')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  currentView === 'slides'
+                    ? 'bg-cyan-100 text-cyan-900 dark:bg-slate-800 dark:text-cyan-400 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800'
+                }`}
+              >
+                <FolderOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <span>Διαφάνειες</span>
               </button>
 
               <button
@@ -171,7 +215,7 @@ export default function App() {
                 }`}
               >
                 <HelpCircle className="w-4 h-4" />
-                <span>Κουίζ & Τεστ</span>
+                <span>Κουίζ</span>
               </button>
             </nav>
 
@@ -205,17 +249,17 @@ export default function App() {
                 title="Άνοιγμα επίσημου ψηφιακού βιβλίου ΕΠΑΛ (ΙΕΠ/ebooks.edu.gr)"
               >
                 <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span className="hidden sm:inline">Βιβλίο ΙΕΠ</span>
+                <span className="hidden sm:inline">Βιβλίο</span>
                 <ExternalLink className="w-3 h-3 text-slate-400" />
               </a>
             </div>
           </div>
 
           {/* Mobile Navigation bar */}
-          <div className="lg:hidden flex items-center justify-around py-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-semibold">
+          <div className="lg:hidden flex items-center justify-around py-2.5 border-t border-slate-200 dark:border-slate-800 text-xs font-semibold overflow-x-auto scrollbar-none">
             <button
               onClick={() => setCurrentView('chapters')}
-              className={`p-1.5 cursor-pointer transition-colors ${
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                 currentView === 'chapters' || currentView === 'chapter-detail'
                   ? 'text-cyan-700 dark:text-cyan-400 font-bold'
                   : 'text-slate-600 dark:text-slate-400'
@@ -224,8 +268,16 @@ export default function App() {
               Ύλη
             </button>
             <button
+              onClick={() => handleOpenSlides()}
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+                currentView === 'slides' ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-slate-600 dark:text-slate-400'
+              }`}
+            >
+              Διαφάνειες PDF
+            </button>
+            <button
               onClick={() => setCurrentView('simulators')}
-              className={`p-1.5 cursor-pointer transition-colors ${
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                 currentView === 'simulators' ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-slate-600 dark:text-slate-400'
               }`}
             >
@@ -233,7 +285,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setCurrentView('datasheets')}
-              className={`p-1.5 cursor-pointer transition-colors ${
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                 currentView === 'datasheets' ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-slate-600 dark:text-slate-400'
               }`}
             >
@@ -241,7 +293,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setCurrentView('glossary')}
-              className={`p-1.5 cursor-pointer transition-colors ${
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                 currentView === 'glossary' ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-slate-600 dark:text-slate-400'
               }`}
             >
@@ -249,7 +301,7 @@ export default function App() {
             </button>
             <button
               onClick={() => handleOpenQuiz()}
-              className={`p-1.5 cursor-pointer transition-colors ${
+              className={`p-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                 currentView === 'quiz' ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-slate-600 dark:text-slate-400'
               }`}
             >
@@ -267,38 +319,13 @@ export default function App() {
             {/* Hero Section */}
             <div className="relative rounded-3xl bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-900 dark:to-cyan-950/40 border border-slate-200 dark:border-slate-800 p-6 md:p-10 shadow-md dark:shadow-2xl overflow-hidden transition-colors">
               <div className="max-w-3xl space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-300 dark:border-cyan-500/30 text-cyan-900 dark:text-cyan-400 text-xs font-bold">
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Επίσημο Αναλυτικό Πρόγραμμα Σπουδών • Τομέας Ηλεκτρολογίας & Ηλεκτρονικής</span>
-                </div>
-
                 <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                   Διαδραστικές Αρχές Ηλεκτρονικής
                 </h1>
 
                 <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
                   Εκπαιδευτική εφαρμογή για τους μαθητές της <strong>Α' Τάξης ΕΠΑΛ</strong>. Καλύπτει πλήρως τη διδακτέα ύλη (Κεφάλαια 1, 2, 4, 5, 8) με θεωρία, διαδραστικούς προσομοιωτές κυκλωμάτων, ανάγνωση πραγματικών τεχνικών φυλλαδίων (datasheets), γλωσσάριο και ερωτήσεις αυτοαξιολόγησης.
-                </p>
-
-                {/* Metrics Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
-                    <span className="text-xl font-extrabold font-mono text-cyan-700 dark:text-cyan-400 block">5</span>
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Κεφάλαια Ύλης</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
-                    <span className="text-xl font-extrabold font-mono text-emerald-700 dark:text-emerald-400 block">5</span>
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Εικονικά Εργαστήρια</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
-                    <span className="text-xl font-extrabold font-mono text-amber-700 dark:text-amber-400 block">{quizData.length}</span>
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Ερωτήσεις Κουίζ</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
-                    <span className="text-xl font-extrabold font-mono text-purple-700 dark:text-purple-400 block">{datasheetsData.length}</span>
-                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">Τεχνικά Φυλλάδια</span>
-                  </div>
-                </div>
+                </p>                
               </div>
             </div>
 
@@ -377,6 +404,14 @@ export default function App() {
                     </button>
 
                     <button
+                      onClick={() => handleOpenSlides(chapter.id)}
+                      className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer border border-slate-300 dark:border-slate-700"
+                      title="Διαφάνειες Κεφαλαίου"
+                    >
+                      <Presentation className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    </button>
+
+                    <button
                       onClick={() => handleOpenSimulator(chapter.id)}
                       className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer border border-slate-300 dark:border-slate-700"
                       title="Άνοιγμα Προσομοιωτή"
@@ -406,6 +441,7 @@ export default function App() {
               allChapterIds={allChapterIds}
               onBack={() => setCurrentView('chapters')}
               onOpenQuiz={(chId) => handleOpenQuiz(chId)}
+              onOpenSlides={(chId) => handleOpenSlides(chId)}
               onNextChapter={(nextId) => setSelectedChapterId(nextId)}
               onPrevChapter={(prevId) => setSelectedChapterId(prevId)}
             />
@@ -493,6 +529,13 @@ export default function App() {
                 setCurrentView('chapter-detail');
               }}
             />
+          </div>
+        )}
+
+        {/* VIEW 7: GITHUB CLASSROOM PDF MATERIALS & SLIDES REPOSITORY */}
+        {currentView === 'slides' && (
+          <div className="animate-fadeIn">
+            <ClassroomPdfRepository initialChapterId={selectedChapterId} />
           </div>
         )}
       </main>

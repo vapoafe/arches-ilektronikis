@@ -61,3 +61,41 @@ export interface GlossaryTerm {
   definition: string;
   example: string;
 }
+
+export interface SlideItem {
+  id: number;
+  title: string;
+  subtitle?: string;
+  bulletPoints: string[];
+  formulaOrFormulae?: string[];
+  keyTakeaway: string;
+  diagramDescription?: string;
+  diagramType?: 'energy-bands' | 'pn-junction' | 'scr-circuit' | 'bjt-characteristics' | 'logic-gates' | 'custom';
+  teacherNotes?: string;
+}
+
+export interface ChapterSlideDeck {
+  chapterId: ChapterId;
+  title: string;
+  chapterTitle: string;
+  author: string;
+  estimatedDuration: string;
+  totalSlides: number;
+  description: string;
+  slides: SlideItem[];
+  bookRef: string;
+}
+
+export interface SharedPdfMaterial {
+  id: string;
+  title: string;
+  chapterId: ChapterId | 0;
+  description: string;
+  fileDataUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  externalUrl?: string;
+  uploadDate: string;
+  uploadedByTeacher: boolean;
+  slideCount?: number;
+}
