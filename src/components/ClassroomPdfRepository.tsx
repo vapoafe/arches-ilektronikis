@@ -34,8 +34,16 @@ import {
   KeyRound,
   ShieldCheck,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  Loader2,
+  X
 } from 'lucide-react';
+
+import {
+  downloadPdfFile,
+  openPdfInNewWindow,
+  resolveFileUrl
+} from '../utils/pdfFileHandler';
 
 const STORAGE_CUSTOM_GITHUB_PDFS = 'epal_github_custom_pdfs_v1';
 const STORAGE_TEACHER_PIN = 'epal_teacher_admin_pin_v1';
@@ -58,6 +66,8 @@ export const ClassroomPdfRepository: React.FC<{ initialChapterId?: number }> = (
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showGithubGuide, setShowGithubGuide] = useState<boolean>(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [globalNotice, setGlobalNotice] = useState<string | null>(null);
 
   // Teacher Authentication state (defaults to false for public visitors)
   const [isTeacherLoggedIn, setIsTeacherLoggedIn] = useState<boolean>(() => {
@@ -190,10 +200,27 @@ export const ClassroomPdfRepository: React.FC<{ initialChapterId?: number }> = (
   }, [allPdfs, selectedFolderId, searchQuery]);
 
   const handleCopyLink = (item: GitHubPdfItem) => {
-    const fullUrl = `${window.location.origin}${item.relativeUrl}`;
+    const fullUrl = resolveFileUrl(item.relativeUrl);
     navigator.clipboard.writeText(fullUrl);
     setCopiedId(item.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDownloadPdf = async (item: GitHubPdfItem) => {
+    setDownloadingId(item.id);
+    const result = await downloadPdfFile(item.relativeUrl, item.fileName);
+    setDownloadingId(null);
+    if (result.success) {
+      setGlobalNotice(`Η λήψη του "${item.fileName}" ξεκίνησε!`);
+      setTimeout(() => setGlobalNotice(null), 4000);
+    } else {
+      setGlobalNotice(result.error || 'Σφάλμα κατά τη λήψη του αρχείου.');
+      setTimeout(() => setGlobalNotice(null), 6000);
+    }
+  };
+
+  const handleOpenPdfExternal = async (item: GitHubPdfItem) => {
+    await openPdfInNewWindow(item.relativeUrl);
   };
 
   const handleOpenShare = (item: GitHubPdfItem) => {
@@ -474,26 +501,33 @@ export const ClassroomPdfRepository: React.FC<{ initialChapterId?: number }> = (
                       </button>
 
                       {/* Download */}
-                      <a
-                        href={pdf.relativeUrl}
-                        download={pdf.fileName}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer border border-slate-300 dark:border-slate-700"
+                      <button
+                        onClick={() => handleDownloadPdf(pdf)}
+                        disabled={downloadingId === pdf.id}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer border border-slate-300 dark:border-slate-700 disabled:opacity-60"
                         title="Κατέβασμα αρχείου PDF"
                       >
-                        <Download className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                        <span>Λήψη</span>
-                      </a>
+                        {downloadingId === pdf.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-600 dark:text-cyan-400" />
+                            <span>Λήψη...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                            <span>Λήψη</span>
+                          </>
+                        )}
+                      </button>
 
                       {/* Open in new browser tab */}
-                      <a
-                        href={pdf.relativeUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => handleOpenPdfExternal(pdf)}
                         className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
                         title="Άνοιγμα σε νέο παράθυρο"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
