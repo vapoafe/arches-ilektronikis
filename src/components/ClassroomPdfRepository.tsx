@@ -237,7 +237,7 @@ export const ClassroomPdfRepository: React.FC<{ initialChapterId?: number }> = (
     }
 
     const folderCat = pdfFolders.find((f) => f.id === newPdfFolderId) || pdfFolders[0];
-    const relativeUrl = `/slides/${newPdfFolderId}/${sanitizedFileName}`;
+    const relativeUrl = `https://vapoafe.github.io/arches-ilektronikis/slides/${newPdfFolderId}/${sanitizedFileName}`;
 
     const newPdf: GitHubPdfItem = {
       id: 'custom_pdf_' + Date.now(),
